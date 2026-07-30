@@ -52,7 +52,7 @@ The system is seeded with authentic data:
 
 ### 1. Install Dependencies
 ```bash
-cd biosecurity_karnataka
+cd "Karnataka BioSecurity Network"
 pip install -r requirements.txt
 ```
 
@@ -82,28 +82,28 @@ Open browser: `http://localhost:5000`
 
 ## Project Structure
 ```
-biosecurity_karnataka/
-├── app.py                 # Main Flask application
-├── models.py              # Database models
-├── data.py                # Karnataka seed data
-├── requirements.txt       # Python dependencies
-├── static/
-│   ├── css/              # Stylesheets
-│   ├── js/               # JavaScript files
-│   ├── uploads/          # Uploaded incident images
-│   └── images/           # Static images
-└── templates/
-    ├── base.html         # Base template
-    ├── index.html        # Landing page
-    ├── about.html        # About page
-    ├── login.html        # Login page
-    ├── signup.html       # Registration page
-    ├── farmer_dashboard.html
-    ├── vet_dashboard.html
-    ├── district_dashboard.html
-    ├── state_dashboard.html
-    ├── report_emergency.html
-    └── view_incident.html
+Karnataka BioSecurity Network/
+├── app.py                     # Compatibility launcher for the Flask app
+├── backend/
+│   ├── app.py                 # Main Flask application entry point
+│   ├── models.py              # Database models
+│   ├── data.py                # Karnataka seed data
+│   ├── voice_service.py       # Voice processing helper
+│   ├── gemma_service.py       # Placeholder for future Gemma integration
+│   ├── rag_service.py         # Placeholder for future RAG integration
+│   ├── prompts.py             # Centralized AI prompts
+│   ├── requirements.txt       # Python dependencies
+│   └── .env                   # Local environment settings
+├── frontend/
+│   ├── templates/             # HTML templates
+│   └── static/
+│       ├── css/               # Stylesheets
+│       ├── js/                # JavaScript files
+│       ├── images/           # Static images
+│       └── uploads/          # Uploaded incident images and audio
+├── instance/                  # SQLite database location
+├── README.md
+└── run.sh
 ```
 
 ## Key Features to Add in Production
