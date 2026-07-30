@@ -28,7 +28,7 @@ KAGGLE_API_URL = "https://nativity-such-sheet.ngrok-free.dev"
 load_dotenv(BACKEND_DIR / '.env')
 load_dotenv(PROJECT_ROOT / '.env')
 
-app = Flask(__name__, template_folder=str(PROJECT_ROOT / 'frontend' / 'templates'), static_folder=str(PROJECT_ROOT / 'frontend' / 'static'))
+app = Flask(__name__, template_folder=str(PROJECT_ROOT / 'templates'), static_folder=str(PROJECT_ROOT / 'static'))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'karnataka-biosecurity-2025-default-dev-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', f"sqlite:///{(PROJECT_ROOT / 'instance' / 'biosecurity_karnataka.db').as_posix()}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -614,6 +614,7 @@ def create_schedule(incident_id):
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 @app.route('/vet/dashboard')
 @login_required
 def vet_dashboard():
