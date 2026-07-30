@@ -205,7 +205,7 @@ def signup():
                 village=request.form.get('village'),
                 taluka=request.form.get('taluka'),
                 district_id=district_id,
-                farm_size=float(request.form.get('farm_size', 0)),
+                farm_size = float(request.form.get('farm_size') or 0),
                 livestock_type=request.form.get('livestock_type'),
                 animal_count=int(request.form.get('animal_count', 0)),
                 latitude=float(request.form.get('latitude', 0)),
