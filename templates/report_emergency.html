@@ -1,182 +1,113 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Emergency - AI Biosecurity</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
 
-{% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-body p-4">
-                    <h2 class="mb-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Report Emergency</h2>
-
-                    <form id="emergencyForm" method="POST" enctype="multipart/form-data">
-
-                        <!-- Issue Title (Optional) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Issue Title</label>
-                            <input type="text" name="title" class="form-control" placeholder="e.g., Sudden mortality in poultry flock">
-                        </div>
-
-                        <!-- Animal Type & Affected Count (Optional) -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Animal Type</label>
-                                <select name="animal_type" class="form-select">
-                                    <option value="poultry">Poultry</option>
-                                    <option value="pig">Pig</option>
-                                    <option value="cattle">Cattle</option>
-                                    <option value="goat">Goat</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Affected Count</label>
-                                <input type="number" name="affected_count" class="form-control" value="1">
-                            </div>
-                        </div>
-
-                        <!-- Severity (Mandatory *) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Severity <span class="text-danger">*</span></label>
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check" name="severity" id="low" value="low">
-                                <label class="btn btn-outline-success" for="low">Low</label>
-
-                                <input type="radio" class="btn-check" name="severity" id="medium" value="medium">
-                                <label class="btn btn-outline-warning" for="medium">Medium</label>
-
-                                <input type="radio" class="btn-check" name="severity" id="high" value="high">
-                                <label class="btn btn-outline-danger" for="high">High</label>
-                            </div>
-                            <small id="severityError" class="text-danger mt-1" style="display:none;">Please select a severity level.</small>
-                        </div>
-
-                        <!-- Symptoms Observed (Optional) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Symptoms Observed</label>
-                            <textarea name="symptoms" class="form-control" rows="2" placeholder="e.g., Fever, coughing, nasal discharge"></textarea>
-                        </div>
-
-                        <!-- Description (Optional) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Description</label>
-                            <textarea name="description" class="form-control" rows="4" placeholder="Describe when it started, recent changes, etc."></textarea>
-                        </div>
-
-                        <!-- Upload Images (Mandatory *) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Upload Images <span class="text-danger">*</span></label>
-                            <input type="file" id="imageInput" name="images" class="form-control" accept="image/*" multiple capture="environment">
-                            <small class="text-muted">Please upload photos of affected animals or symptoms.</small>
-                        </div>
-
-                        <!-- Voice Recording Section (Mandatory *) -->
-                        <div class="card p-3 my-3 border-danger shadow-sm bg-light">
-                            <label class="form-label fw-bold">
-                                <strong>Record Voice Report (Kannada / English) <span class="text-danger">*</span></strong>
-                            </label>
-                            <p class="text-muted small mb-2">Click record, describe symptoms, and click stop when done.</p>
-
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" id="recordBtn" class="btn btn-outline-danger">
-                                    🎤 Start Recording
-                                </button>
-                                <span id="recordingStatus" class="badge bg-secondary ms-2" style="display:none;">Recording...</span>
-                            </div>
-
-                            <audio id="audioPreview" controls class="w-100 mt-3" style="display:none;"></audio>
-                            <input type="file" name="voice_file" id="voiceFileInput" style="display:none;">
-                        </div>
-
-                        <!-- AI Assistance Note -->
-                        <div class="alert alert-info my-3">
-                            <i class="fas fa-robot me-2"></i>
-                            <strong>AI Assistance:</strong> After submission, the app will analyze your report and provide immediate measures while awaiting veterinarian response.
-                        </div>
-
-                        <!-- Submit Button -->
-                        <button type="submit" class="btn btn-danger w-100 btn-lg">
-                            <i class="fas fa-paper-plane me-2"></i>Submit Emergency Report
-                        </button>
-
-                    </form>
+<div class="container py-4" style="max-width: 700px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Report Emergency</h4>
+        </div>
+        <div class="card-body">
+            
+            <form method="POST" action="{{ url_for('report_emergency') }}" enctype="multipart/form-data" id="emergencyForm">
+                
+                <!-- 1. UPLOAD IMAGES (At the top & MANDATORY) -->
+                <div class="card p-3 mb-4 border-primary bg-light">
+                    <label class="form-label fw-bold text-primary fs-5">
+                        Upload Images <span class="text-danger">*</span>
+                    </label>
+                    <input type="file" name="image" id="imageInput" class="form-control form-control-lg" accept="image/*" required>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="fas fa-image me-1 text-primary"></i> Upload a clear photo of the affected animal or symptoms.
+                    </small>
                 </div>
-            </div>
+
+                <!-- 2. ISSUE TITLE -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Issue Title</label>
+                    <input type="text" name="title" id="issue_title" class="form-control" placeholder="e.g., Sudden mortality or skin lesions in livestock">
+                </div>
+
+                <!-- 3. ANIMAL TYPE & AFFECTED COUNT -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Animal Type</label>
+                        <select name="animal_type" id="animal_type" class="form-select">
+                            <option value="Cattle">Cattle</option>
+                            <option value="Poultry">Poultry</option>
+                            <option value="Goat/Sheep">Goat/Sheep</option>
+                            <option value="Pig">Pig</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Affected Count</label>
+                        <input type="number" name="affected_count" class="form-control" value="1" min="1">
+                    </div>
+                </div>
+
+                <!-- 4. SEVERITY (Optional) -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Severity</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="severity" id="sev_low" value="Low">
+                        <label class="btn btn-outline-success" for="sev_low">Low</label>
+
+                        <input type="radio" class="btn-check" name="severity" id="sev_med" value="Medium" checked>
+                        <label class="btn btn-outline-warning text-dark" for="sev_med">Medium</label>
+
+                        <input type="radio" class="btn-check" name="severity" id="sev_high" value="High">
+                        <label class="btn btn-outline-danger" for="sev_high">High</label>
+                    </div>
+                </div>
+
+                <!-- 5. SYMPTOMS OBSERVED -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Symptoms Observed</label>
+                    <textarea name="symptoms" id="symptoms" class="form-control" rows="2" placeholder="e.g., Fever, coughing, skin nodules, nasal discharge"></textarea>
+                </div>
+
+                <!-- 6. DESCRIPTION -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Description</label>
+                    <textarea name="description" id="description" class="form-control" rows="3" placeholder="Describe when it started, recent changes, etc."></textarea>
+                </div>
+
+                <!-- 7. RECORD VOICE REPORT (Optional) -->
+                <div class="card p-3 mb-4 bg-light border">
+                    <label class="form-label fw-bold mb-1">Record Voice Report (Kannada / English)</label>
+                    <small class="text-muted d-block mb-2">Click record, describe symptoms, and click stop when done.</small>
+                    <div>
+                        <button type="button" id="recordBtn" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-microphone me-1"></i> Start Recording
+                        </button>
+                        <input type="file" name="voice_note" id="voice_input" accept="audio/*" class="d-none">
+                    </div>
+                </div>
+
+                <!-- AI ASSISTANCE BANNER -->
+                <div class="alert alert-info d-flex align-items-center mb-4">
+                    <i class="fas fa-robot fa-2x me-3 text-info"></i>
+                    <div>
+                        <strong>Gemma AI Pipeline:</strong> Once submitted, the image and report will be processed by Gemma RAG on the backend to provide immediate biosecurity recommendations.
+                    </div>
+                </div>
+
+                <!-- SUBMIT BUTTON -->
+                <button type="submit" class="btn btn-danger w-100 py-3 fw-bold fs-5">
+                    <i class="fas fa-paper-plane me-2"></i> Submit Emergency Report
+                </button>
+            </form>
+
         </div>
     </div>
 </div>
 
-<!-- JavaScript for Mandatory Verification and Audio Recording -->
-<script>
-let mediaRecorder;
-let audioChunks = [];
-
-const recordBtn = document.getElementById('recordBtn');
-const audioPreview = document.getElementById('audioPreview');
-const voiceFileInput = document.getElementById('voiceFileInput');
-const recordingStatus = document.getElementById('recordingStatus');
-const emergencyForm = document.getElementById('emergencyForm');
-const imageInput = document.getElementById('imageInput');
-const severityError = document.getElementById('severityError');
-
-// Audio Recording Logic
-recordBtn.onclick = async () => {
-    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-
-                audioPreview.src = audioUrl;
-                audioPreview.style.display = 'block';
-
-                const file = new File([audioBlob], "farmer_voice.wav", { type: "audio/wav" });
-                const container = new DataTransfer();
-                container.items.add(file);
-                voiceFileInput.files = container.files;
-            };
-
-            mediaRecorder.start();
-            recordBtn.innerText = '⏹ Stop Recording';
-            recordBtn.className = 'btn btn-danger';
-            recordingStatus.style.display = 'inline-block';
-        } catch (err) {
-            alert('Microphone access denied or not supported by browser.');
-        }
-    } else {
-        mediaRecorder.stop();
-        recordBtn.innerText = '🎤 Record Again';
-        recordBtn.className = 'btn btn-outline-danger';
-        recordingStatus.style.display = 'none';
-    }
-};
-
-// Validation Check on Submit
-emergencyForm.onsubmit = (e) => {
-    const hasImage = imageInput.files && imageInput.files.length > 0;
-    const hasVoice = voiceFileInput.files && voiceFileInput.files.length > 0;
-    const hasSeverity = document.querySelector('input[name="severity"]:checked') !== null;
-
-    if (!hasSeverity) {
-        severityError.style.display = 'block';
-    } else {
-        severityError.style.display = 'none';
-    }
-
-    if (!hasSeverity || !hasImage || !hasVoice) {
-        let missingFields = [];
-        if (!hasSeverity) missingFields.push('Severity Level');
-        if (!hasImage) missingFields.push('At least one Image');
-        if (!hasVoice) missingFields.push('Voice Recording');
-
-        alert('⚠️ Please complete the following required fields before submitting:\n\n• ' + missingFields.join('\n• '));
-        e.preventDefault();
-        return false;
-    }
-};
-</script>
-{% endblock %}
+</body>
+</html>
