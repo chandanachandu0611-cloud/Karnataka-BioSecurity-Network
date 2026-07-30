@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Home - Karnataka Biosecurity Network{% endblock %}
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container text-center">
+        <div class="page-kicker text-white mb-3">Field response network</div>
+        <h1 class="display-5 fw-bold mb-3">Protecting Karnataka's Livestock</h1>
+        <p class="lead mb-4 mx-auto" style="max-width: 720px;">Community-driven biosecurity network connecting farmers, veterinarians, and officials for rapid disease response</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="{{ url_for('signup') }}" class="btn btn-light btn-lg px-4">Join Network</a>
+            <a href="{{ url_for('about') }}" class="btn btn-outline-light btn-lg px-4">Learn More</a>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-5 soft-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="card stat-card p-4 text-center">
+                    <i class="fas fa-tractor fa-2x text-success mb-2"></i>
+                    <h3 class="fw-bold">{{ stats.total_farms }}</h3>
+                    <p class="text-muted mb-0">Registered Farms</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card warning p-4 text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                    <h3 class="fw-bold">{{ stats.active_cases }}</h3>
+                    <p class="text-muted mb-0">Active Cases</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card success p-4 text-center">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h3 class="fw-bold">{{ stats.resolved_cases }}</h3>
+                    <p class="text-muted mb-0">Cases Resolved</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card p-4 text-center">
+                    <i class="fas fa-user-md fa-2x text-primary mb-2"></i>
+                    <h3 class="fw-bold">{{ stats.total_vets }}</h3>
+                    <p class="text-muted mb-0">Veterinarians</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="page-kicker">Workflow</div>
+            <h2 class="fw-bold mb-0">How It Works</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4 text-center">
+                <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                <h4>Farmer Reports Issue</h4>
+                <p class="text-muted">Farmers report emergencies via simple dashboard with images and symptoms in Kannada or English.</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                <h4>AI Temporary Solution</h4>
+                <p class="text-muted">Gemini AI provides immediate temporary measures while the veterinarian travels to the farm.</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="feature-icon"><i class="fas fa-user-md"></i></div>
+                <h4>Vet Responds Quickly</h4>
+                <p class="text-muted">Nearby veterinarians receive alerts, schedule visits, and resolve cases efficiently.</p>
+            </div>
+        </div>
+        <div class="row g-4 mt-3">
+            <div class="col-md-4 text-center">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h4>District Monitoring</h4>
+                <p class="text-muted">District heads track active cases, vaccination coverage, and send targeted alerts.</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="feature-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <h4>State Risk Mapping</h4>
+                <p class="text-muted">Real-time risk zone mapping with red/yellow/green indicators across all districts.</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                <h4>Community Network</h4>
+                <p class="text-muted">Direct messaging between all stakeholders ensures no information gap.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Disease Alert Banner -->
+<section class="py-4" style="background:#8f312b;color:white;">
+    <div class="container text-center">
+        <h4><i class="fas fa-bell me-2"></i>Current Alerts</h4>
+        <p class="mb-0">High alert for Avian Influenza in Belagavi and Kalaburagi districts. Strict biosecurity measures advised.</p>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5 soft-section">
+    <div class="container text-center">
+        <h2 class="fw-bold mb-3">Ready to Secure Your Farm?</h2>
+        <p class="lead text-muted mb-4">Join thousands of Karnataka farmers in building a disease-resilient livestock sector</p>
+        <a href="{{ url_for('signup') }}" class="btn btn-success btn-lg px-5">Register Now</a>
+    </div>
+</section>
+{% endblock %}

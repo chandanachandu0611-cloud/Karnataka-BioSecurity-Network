@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}District Dashboard - Karnataka Biosecurity Network{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 dashboard-sidebar p-0">
+            <div class="p-3">
+                <h5 class="fw-bold text-warning"><i class="fas fa-building me-2"></i>District Panel</h5>
+                <hr>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('district_dashboard') }}"><i class="fas fa-home me-2"></i>Dashboard</a>
+                    <a class="nav-link" href="#incidents"><i class="fas fa-clipboard-list me-2"></i>Incidents</a>
+                    <a class="nav-link" href="#vaccination"><i class="fas fa-syringe me-2"></i>Vaccination</a>
+                    <a class="nav-link" href="#alerts"><i class="fas fa-bullhorn me-2"></i>Send Alerts</a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <div class="page-kicker">District command view</div>
+                    <h3 class="fw-bold">{{ district.name }} District</h3>
+                    <p class="text-muted mb-0"><i class="fas fa-map-marker-alt me-1"></i>{{ district.name_kn }} | {{ district.total_villages }} Villages</p>
+                </div>
+                <span class="badge bg-{{ 'success' if district.risk_level == 'green' else 'warning' if district.risk_level == 'yellow' else 'danger' }} fs-5">
+                    Risk: {{ district.risk_level.upper() }}
+                </span>
+            </div>
+
+            <!-- Key Metrics -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Farms</h6>
+                                <h4 class="fw-bold mb-0">{{ total_farms }}</h4>
+                            </div>
+                            <i class="fas fa-tractor fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card warning p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Active Cases</h6>
+                                <h4 class="fw-bold mb-0">{{ active_cases }}</h4>
+                            </div>
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card success p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Resolved</h6>
+                                <h4 class="fw-bold mb-0">{{ resolved_cases }}</h4>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Veterinarians</h6>
+                                <h4 class="fw-bold mb-0">{{ total_vets }}</h4>
+                            </div>
+                            <i class="fas fa-user-md fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if unverified_vets %}
+            <!-- Pending Vet Verifications -->
+            <div class="card mb-4 border-warning">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-user-check me-2"></i>Pending Vet Verifications</h5>
+                    <span class="badge bg-dark">{{ unverified_vets|length }} New</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Reg. Number</th>
+                                    <th>Specialization</th>
+                                    <th>Taluka</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vet in unverified_vets %}
+                                <tr>
+                                    <td>Dr. {{ vet.user.username }}</td>
+                                    <td>{{ vet.registration_number }}</td>
+                                    <td>{{ vet.specialization }}</td>
+                                    <td>{{ vet.taluka }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('verify_vet', vet_id=vet.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success">Verify & Approve</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <!-- Incidents Table -->
+                <div class="col-lg-8 mb-4" id="incidents">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list me-2"></i>Incidents in District</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Title</th>
+                                            <th>Farmer</th>
+                                            <th>Village</th>
+                                            <th>Type</th>
+                                            <th>Severity</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for inc in incidents %}
+                                        <tr>
+                                            <td><a href="{{ url_for('view_incident', incident_id=inc.id) }}">#{{ inc.id }}</a></td>
+                                            <td>{{ inc.title[:25] }}...</td>
+                                            <td>{{ inc.farmer.user.username }}</td>
+                                            <td>{{ inc.village }}</td>
+                                            <td>{{ inc.animal_type.title() }}</td>
+                                            <td><span class="badge bg-{{ 'success' if inc.severity == 'low' else 'warning' if inc.severity == 'medium' else 'danger' }}">{{ inc.severity.upper() }}</span></td>
+                                            <td><span class="badge bg-{{ 'warning' if inc.status == 'pending' else 'info' if inc.status == 'assigned' else 'primary' if inc.status == 'in_progress' else 'success' }}">{{ inc.status.replace('_', ' ').title() }}</span></td>
+                                            <td>{{ inc.created_at.strftime('%d %b') }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vaccination Pie Chart -->
+                <div class="col-lg-4 mb-4" id="vaccination">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-chart-pie me-2"></i>Vaccination by Type</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="vaxPieChart" height="200"></canvas>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Overall Coverage</span>
+                                <span class="fw-bold text-{{ 'success' if district.vaccination_coverage >= 80 else 'warning' if district.vaccination_coverage >= 60 else 'danger' }}">{{ district.vaccination_coverage }}%</span>
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-{{ 'success' if district.vaccination_coverage >= 80 else 'warning' if district.vaccination_coverage >= 60 else 'danger' }}" style="width: {{ district.vaccination_coverage }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Alerts -->
+            <div class="card mb-4" id="alerts">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-bullhorn me-2"></i>Send Alert to District</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('district_send_alert') }}">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Alert Title</label>
+                                <input type="text" name="title" class="form-control" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Recipient</label>
+                                <select name="recipient_role" class="form-select">
+                                    <option value="all">All</option>
+                                    <option value="farmer">Farmers Only</option>
+                                    <option value="vet">Vets Only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Type</label>
+                                <select name="message_type" class="form-select">
+                                    <option value="alert">Alert</option>
+                                    <option value="emergency">Emergency</option>
+                                    <option value="general">General</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-warning w-100"><i class="fas fa-paper-plane"></i> Send</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message Content</label>
+                            <textarea name="content" class="form-control" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Alerts Sent -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-history me-2"></i>Recent Alerts Sent</h5>
+                </div>
+                <div class="card-body">
+                    {% for msg in messages %}
+                    <div class="alert alert-{{ 'danger' if msg.message_type == 'emergency' else 'warning' if msg.message_type == 'alert' else 'info' }} p-2 mb-2">
+                        <strong>{{ msg.title }}</strong> <span class="badge bg-secondary">{{ msg.message_type.title() }}</span>
+                        <p class="mb-0 small">{{ msg.content }}</p>
+                        <small class="text-muted">{{ msg.created_at.strftime('%d %b %Y') }}</small>
+                    </div>
+                    {% else %}
+                        <p class="text-muted">No alerts sent yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Vaccination Pie Chart
+const vaxCtx = document.getElementById('vaxPieChart').getContext('2d');
+new Chart(vaxCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for v in vax_data %}'{{ v[0].title() }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for v in vax_data %}{{ v[1] }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: ['#2e7d32', '#1565c0', '#f9a825', '#c62828', '#6a1b9a']
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Veterinarian Dashboard - Karnataka Biosecurity Network{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 dashboard-sidebar p-0">
+            <div class="p-3">
+                <h5 class="fw-bold text-primary"><i class="fas fa-user-md me-2"></i>Vet Panel</h5>
+                <hr>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('vet_dashboard') }}"><i class="fas fa-home me-2"></i>Dashboard</a>
+                    <a class="nav-link" href="#pending"><i class="fas fa-clipboard-list me-2"></i>Pending Cases</a>
+                    <a class="nav-link" href="#assigned"><i class="fas fa-tasks me-2"></i>My Cases</a>
+                    <a class="nav-link" href="#schedule"><i class="fas fa-calendar-alt me-2"></i>Schedule</a>
+                    <a class="nav-link" href="#farmers"><i class="fas fa-users me-2"></i>Farmers</a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <div class="page-kicker">Veterinary response desk</div>
+                    <h3 class="fw-bold">Dr. {{ current_user.username }}</h3>
+                    <p class="text-muted mb-0"><i class="fas fa-id-card me-1"></i>{{ profile.registration_number }} | {{ profile.specialization }} | {{ profile.district.name }}</p>
+                </div>
+                <span class="badge bg-{{ 'success' if profile.is_verified else 'warning' }} fs-6">
+                    {{ 'Verified' if profile.is_verified else 'Verification Pending' }}
+                </span>
+            </div>
+
+            <!-- Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Pending in District</h6>
+                                <h4 class="fw-bold mb-0">{{ pending_incidents|length }}</h4>
+                            </div>
+                            <i class="fas fa-clipboard-list fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">My Active Cases</h6>
+                                <h4 class="fw-bold mb-0">{{ assigned_incidents|selectattr('status', 'in', ['assigned', 'in_progress'])|list|length }}</h4>
+                            </div>
+                            <i class="fas fa-tasks fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card success p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Resolved</h6>
+                                <h4 class="fw-bold mb-0">{{ assigned_incidents|selectattr('status', 'equalto', 'resolved')|list|length }}</h4>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Upcoming Visits</h6>
+                                <h4 class="fw-bold mb-0">{{ schedules|selectattr('status', 'equalto', 'scheduled')|list|length }}</h4>
+                            </div>
+                            <i class="fas fa-calendar-check fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Pending Cases -->
+                <div class="col-lg-6 mb-4" id="pending">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list me-2"></i>Pending Cases in {{ profile.district.name }}</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            {% for incident in pending_incidents %}
+                            <div class="card mb-2 border-warning">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="fw-bold mb-1"><a href="{{ url_for('view_incident', incident_id=incident.id) }}" class="text-decoration-none text-dark">#{{ incident.id }} - {{ incident.title or 'Emergency Report' }}</a></h6>
+                                            <p class="mb-1 small">{{ incident.description[:60] }}...</p>
+                                            <span class="badge bg-secondary">{{ incident.animal_type.title() }}</span>
+                                            <span class="badge bg-danger">{{ incident.severity.upper() }}</span>
+                                            {% if incident.farmer.is_biosecure %}
+                                            <span class="badge bg-success"><i class="fas fa-shield-alt me-1"></i>Secure</span>
+                                            {% else %}
+                                            <span class="badge bg-outline-danger" style="border: 1px solid #dc3545; color: #dc3545;">Unsecure</span>
+                                            {% endif %}
+                                            <small class="text-muted">{{ incident.village }}, {{ incident.taluka }}</small>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('assign_incident', incident_id=incident.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-primary">Accept</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                                <p class="text-muted text-center py-3">No pending cases</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Cases -->
+                <div class="col-lg-6 mb-4" id="assigned">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-tasks me-2"></i>My Cases</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            {% for incident in assigned_incidents %}
+                            <div class="card mb-2 border-{{ 'success' if incident.status == 'resolved' else 'primary' }}">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="fw-bold mb-1">#{{ incident.id }} - {{ incident.title }}</h6>
+                                            <span class="badge bg-{{ 'success' if incident.status == 'resolved' else 'info' if incident.status == 'assigned' else 'primary' }}">{{ incident.status.replace('_', ' ').title() }}</span>
+                                            <small class="text-muted">{{ incident.created_at.strftime('%d %b') }}</small>
+                                        </div>
+                                        <div>
+                                            <a href="{{ url_for('view_incident', incident_id=incident.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                            {% if incident.status != 'resolved' %}
+                                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#scheduleModal{{ incident.id }}">Schedule</button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Schedule Modal -->
+                            <div class="modal fade" id="scheduleModal{{ incident.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Schedule Visit</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('create_schedule') }}">
+                                            <div class="modal-body">
+                                                <input type="hidden" name="incident_id" value="{{ incident.id }}">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Visit Date & Time</label>
+                                                    <input type="datetime-local" name="scheduled_date" class="form-control" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Notes</label>
+                                                    <textarea name="notes" class="form-control" rows="2"></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <button type="submit" class="btn btn-primary">Schedule</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                                <p class="text-muted text-center py-3">No assigned cases</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule & Farmers -->
+            <div class="row">
+                <div class="col-lg-6 mb-4" id="schedule">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-calendar-alt me-2"></i>My Schedule</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if schedules %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead><tr><th>Date</th><th>Incident</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        {% for s in schedules %}
+                                        <tr>
+                                            <td>{{ s.scheduled_date.strftime('%d %b %H:%M') }}</td>
+                                            <td>#{{ s.incident_id }}</td>
+                                            <td><span class="badge bg-{{ 'primary' if s.status == 'scheduled' else 'success' }}">{{ s.status.title() }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                                <p class="text-muted">No scheduled visits</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4" id="farmers">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-users me-2"></i>Farmers in District</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                            {% for farmer in farmers %}
+                            <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                                <div>
+                                    <h6 class="mb-0">{{ farmer.farm_name }}</h6>
+                                    <small class="text-muted">{{ farmer.village }} | {{ farmer.livestock_type.title() }} ({{ farmer.animal_count }})</small>
+                                    <div class="mt-1">
+                                        {% if farmer.is_biosecure %}
+                                        <span class="badge bg-success small">Secure</span>
+                                        {% else %}
+                                        <span class="badge bg-danger small">Non-Secure</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="btn-group">
+                                    <form method="POST" action="{{ url_for('verify_biosecurity', farmer_profile_id=farmer.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-{{ 'outline-danger' if farmer.is_biosecure else 'outline-success' }}" title="{{ 'Revoke Verification' if farmer.is_biosecure else 'Verify Farm' }}">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </button>
+                                    </form>
+                                    <button class="btn btn-sm btn-outline-primary ms-1" data-bs-toggle="modal" data-bs-target="#msgModal{{ farmer.user_id }}">
+                                        <i class="fas fa-comment"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Message Modal -->
+                            <div class="modal fade" id="msgModal{{ farmer.user_id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Message to {{ farmer.user.username }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('vet_send_message') }}">
+                                            <div class="modal-body">
+                                                <input type="hidden" name="farmer_id" value="{{ farmer.user_id }}">
+                                                <textarea name="content" class="form-control" rows="3" placeholder="Type your message..." required></textarea>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <button type="submit" class="btn btn-success">Send</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

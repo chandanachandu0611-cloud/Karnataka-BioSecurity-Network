@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Incident #{{ incident.id }} - Karnataka Biosecurity Network{% endblock %}
+
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="page-kicker">Case record</div>
+                        <h4 class="fw-bold mb-0">Incident #{{ incident.id }}: {{ incident.title }}</h4>
+                    </div>
+                    <span class="badge bg-{{ 'warning' if incident.status == 'pending' else 'info' if incident.status == 'assigned' else 'primary' if incident.status == 'in_progress' else 'success' }} fs-6">
+                        {{ incident.status.replace('_', ' ').title() }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong><i class="fas fa-paw me-2"></i>Animal Type:</strong> {{ incident.animal_type.title() }}</p>
+                            <p class="mb-1"><strong><i class="fas fa-sort-numeric-up me-2"></i>Affected:</strong> {{ incident.affected_count }}</p>
+                            <p class="mb-1"><strong><i class="fas fa-exclamation-circle me-2"></i>Severity:</strong> <span class="badge bg-{{ 'success' if incident.severity == 'low' else 'warning' if incident.severity == 'medium' else 'danger' if incident.severity == 'high' else 'dark' }}">{{ incident.severity.upper() }}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong><i class="fas fa-map-marker-alt me-2"></i>Location:</strong> {{ incident.village }}, {{ incident.taluka }}</p>
+                            <p class="mb-1"><strong><i class="fas fa-shield-alt me-2"></i>Biosecurity:</strong> 
+                                {% if incident.farmer.is_biosecure %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Secure Farm</span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Non-Secure</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-1"><strong><i class="fas fa-calendar me-2"></i>Reported:</strong> {{ incident.created_at.strftime('%d %b %Y, %H:%M') }}</p>
+                            {% if incident.resolved_at %}
+                            <p class="mb-1"><strong><i class="fas fa-check-circle me-2"></i>Resolved:</strong> {{ incident.resolved_at.strftime('%d %b %Y, %H:%M') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6 class="fw-bold">Description:</h6>
+                    <p>{{ incident.description }}</p>
+
+                    <h6 class="fw-bold">Symptoms:</h6>
+                    <p>{{ incident.symptoms }}</p>
+
+                    {% if incident.get_images_list() %}
+                    <h6 class="fw-bold">Images:</h6>
+                    <div class="row g-2 mb-3">
+                        {% for img in incident.get_images_list() %}
+                        <div class="col-md-4">
+                            <img src="{{ url_for('uploaded_file', filename=img) }}" class="img-fluid rounded" style="cursor:pointer" onclick="window.open(this.src)">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+        <!-- Voice Recording Section -->
+        {% if incident.voice_transcription or incident.voice_url %}
+        <div class="mt-3">
+            <h6 class="fw-bold"><i class="fas fa-microphone me-2"></i>Voice Recording & Transcription:</h6>
+            {% if incident.voice_url %}
+            <audio controls class="w-100 mb-2">
+                <source src="{{ url_for('uploaded_file', filename=incident.voice_url) }}" type="audio/wav">
+                <source src="{{ url_for('uploaded_file', filename=incident.voice_url) }}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+            {% endif %}
+            {% if incident.voice_transcription %}
+            <p class="text-muted bg-light p-2 rounded">
+                {{ incident.voice_transcription }}
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+       
+                    
+                </div>
+            </div>
+
+            <!-- AI Solution -->
+            {% if incident.ai_solution %}
+            <div class="card border-info mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-robot me-2"></i>AI Temporary Solution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i><strong>Disclaimer:</strong> This is AI-generated temporary advice only. A veterinarian must visit and confirm the diagnosis before any treatment.
+                    </div>
+                    <pre style="white-space: pre-wrap; font-family: inherit;">{{ incident.ai_solution }}</pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <p class="mb-1 small">{{ incident.description[:60] }}...</p>
+
+            <!-- Mini Audio Player for Vet Dashboard -->
+            {% if incident.voice_url %}
+            <div class="mt-2 mb-2">
+               <small class="text-muted fw-bold d-block mb-1">
+                   <i class="fas fa-microphone me-1"></i>Voice Recording:
+               </small>
+               <audio controls class="w-100" style="height: 32px;">
+                   <source src="{{ url_for('uploaded_file', filename=incident.voice_url) }}">
+                   Your browser does not support audio playing.
+               </audio>
+            </div>
+            {% endif %}
+
+            <!-- Vet Notes -->
+            {% if incident.vet_notes %}
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-user-md me-2"></i>Veterinarian Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ incident.vet_notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="fw-bold mb-0">Case Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <span class="badge bg-success rounded-circle p-2"><i class="fas fa-plus"></i></span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">Reported</h6>
+                                <small class="text-muted">{{ incident.created_at.strftime('%d %b %Y, %H:%M') }}</small>
+                            </div>
+                        </div>
+                        {% if incident.status != 'pending' %}
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <span class="badge bg-info rounded-circle p-2"><i class="fas fa-user-md"></i></span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">Veterinarian Assigned</h6>
+                                <small class="text-muted">{{ incident.assigned_vet.user.username if incident.assigned_vet else 'N/A' }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if incident.status == 'resolved' %}
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <span class="badge bg-success rounded-circle p-2"><i class="fas fa-check"></i></span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">Resolved</h6>
+                                <small class="text-muted">{{ incident.resolved_at.strftime('%d %b %Y, %H:%M') if incident.resolved_at else '' }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if current_user.role == 'vet' and incident.status != 'resolved' %}
+            <div class="card mb-3">
+                <div class="card-header bg-white">
+                    <h5 class="fw-bold mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if incident.status == 'assigned' or incident.status == 'in_progress' %}
+                    <button class="btn btn-primary w-100 mb-3" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                        <i class="fas fa-calendar-alt me-2"></i>Schedule Visit
+                    </button>
+                    {% endif %}
+                    
+                    <form method="POST" action="{{ url_for('resolve_incident', incident_id=incident.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">Veterinarian Notes</label>
+                            <textarea name="vet_notes" class="form-control" rows="3" placeholder="Enter diagnosis and treatment given..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100"><i class="fas fa-check-circle me-2"></i>Mark as Resolved</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Schedule Modal -->
+            <div class="modal fade" id="scheduleModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Schedule Visit</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="POST" action="{{ url_for('create_schedule', incident_id=incident.id) }}"></form>
+                            <div class="modal-body">
+                                <input type="hidden" name="incident_id" value="{{ incident.id }}">
+                                <div class="mb-3">
+                                    <label class="form-label">Visit Date & Time</label>
+                                    <input type="datetime-local" name="scheduled_date" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Notes</label>
+                                    <textarea name="notes" class="form-control" rows="2" placeholder="Preparation notes for the visit..."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Schedule Now</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

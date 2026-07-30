@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Farmer Dashboard - Karnataka Biosecurity Network{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 dashboard-sidebar p-0">
+            <div class="p-3">
+                <h5 class="fw-bold text-success"><i class="fas fa-tractor me-2"></i>Farmer Panel</h5>
+                <hr>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('farmer_dashboard') }}"><i class="fas fa-home me-2"></i>Dashboard</a>
+                    <a class="nav-link" href="{{ url_for('report_emergency') }}"><i class="fas fa-exclamation-circle me-2"></i>Report Emergency</a>
+                    <a class="nav-link" href="#biosecurity"><i class="fas fa-shield-alt me-2"></i>Biosecurity Tips</a>
+                    <a class="nav-link" href="#vaccinations"><i class="fas fa-syringe me-2"></i>Vaccination Records</a>
+                    <a class="nav-link" href="#messages"><i class="fas fa-envelope me-2"></i>Messages</a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <div class="page-kicker">Farm workspace</div>
+                    <h3 class="fw-bold">Welcome, {{ current_user.username }}!</h3>
+                    <p class="text-muted mb-0"><i class="fas fa-map-marker-alt me-1"></i>{{ profile.farm_name }} | {{ profile.village }}, {{ profile.taluka }}, {{ profile.district.name }}</p>
+                </div>
+                <a href="{{ url_for('report_emergency') }}" class="btn btn-danger btn-lg emergency-btn">
+                    <i class="fas fa-plus-circle me-2"></i>Report Emergency
+                </a>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">My Incidents</h6>
+                                <h4 class="fw-bold mb-0">{{ incidents|length }}</h4>
+                            </div>
+                            <i class="fas fa-clipboard-list fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card warning p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Pending</h6>
+                                <h4 class="fw-bold mb-0">{{ incidents|selectattr('status', 'equalto', 'pending')|list|length }}</h4>
+                            </div>
+                            <i class="fas fa-clock fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card success p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Resolved</h6>
+                                <h4 class="fw-bold mb-0">{{ incidents|selectattr('status', 'equalto', 'resolved')|list|length }}</h4>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Animals</h6>
+                                <h4 class="fw-bold mb-0">{{ profile.animal_count }}</h4>
+                            </div>
+                            <i class="fas fa-paw fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Recent Incidents -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-history me-2"></i>Recent Incidents</h5>
+                            <a href="{{ url_for('report_emergency') }}" class="btn btn-sm btn-success">+ New</a>
+                        </div>
+                        <div class="card-body">
+                            {% if incidents %}
+                                {% for incident in incidents[:5] %}
+                                <div class="alert incident-{{ incident.status }} p-3 mb-2">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="fw-bold mb-1">{{ incident.title }}</h6>
+                                            <p class="mb-1 small text-muted">{{ incident.description[:80] }}...</p>
+                                            <span class="badge bg-{{ 'warning' if incident.status == 'pending' else 'info' if incident.status == 'assigned' else 'primary' if incident.status == 'in_progress' else 'success' }}">{{ incident.status.replace('_', ' ').title() }}</span>
+                                            <span class="badge bg-secondary">{{ incident.animal_type.title() }}</span>
+                                            <small class="text-muted ms-2">{{ incident.created_at.strftime('%d %b %Y') }}</small>
+                                        </div>
+                                        <a href="{{ url_for('view_incident', incident_id=incident.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-check-circle fa-3x mb-2 text-success"></i>
+                                    <p>No incidents reported. Great job maintaining biosecurity!</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages & Alerts -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-bell me-2"></i>Alerts & Messages</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                            {% for msg in messages %}
+                            <div class="alert alert-{{ 'danger' if msg.message_type == 'emergency' else 'warning' if msg.message_type == 'alert' else 'info' }} p-2 mb-2">
+                                <small class="fw-bold">{{ msg.title }}</small>
+                                <p class="mb-0 small">{{ msg.content[:100] }}...</p>
+                                <small class="text-muted">{{ msg.created_at.strftime('%d %b') }}</small>
+                            </div>
+                            {% else %}
+                                <p class="text-muted text-center">No new messages</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biosecurity Tips -->
+            <div class="card mb-4" id="biosecurity">
+                <div class="card-header bg-success text-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-shield-alt me-2"></i>Biosecurity Awareness</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for tip in tips %}
+                        <div class="col-md-6">
+                            <div class="card h-100 border-success">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-success">{{ tip.title_en }}</h6>
+                                    <p class="kannada-text text-muted small mb-1">{{ tip.title_kn }}</p>
+                                    <p class="small mb-0">{{ tip.desc_en }}</p>
+                                    <p class="kannada-text text-muted small mb-0">{{ tip.desc_kn }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vaccination Records -->
+            <div class="card" id="vaccinations">
+                <div class="card-header bg-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-syringe me-2"></i>Vaccination Records</h5>
+                </div>
+                <div class="card-body">
+                    {% if vaccinations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Vaccine</th>
+                                    <th>Animal Type</th>
+                                    <th>Date Given</th>
+                                    <th>Next Due</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for v in vaccinations %}
+                                <tr>
+                                    <td>{{ v.vaccine_name }}</td>
+                                    <td>{{ v.animal_type.title() }}</td>
+                                    <td>{{ v.date_given.strftime('%d %b %Y') }}</td>
+                                    <td>{{ v.next_due_date.strftime('%d %b %Y') if v.next_due_date else '-' }}</td>
+                                    <td><span class="badge bg-success">{{ v.status.title() }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <p class="text-muted">No vaccination records found. Contact your veterinarian for vaccination schedule.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

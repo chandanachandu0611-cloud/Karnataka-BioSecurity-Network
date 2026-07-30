@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% block title %}State Dashboard - Karnataka Biosecurity Network{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 dashboard-sidebar p-0">
+            <div class="p-3">
+                <h5 class="fw-bold text-danger"><i class="fas fa-landmark me-2"></i>State Panel</h5>
+                <hr>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('state_dashboard') }}"><i class="fas fa-home me-2"></i>Dashboard</a>
+                    <a class="nav-link" href="#map"><i class="fas fa-map-marked-alt me-2"></i>Risk Map</a>
+                    <a class="nav-link" href="#districts"><i class="fas fa-chart-bar me-2"></i>Districts</a>
+                    <a class="nav-link" href="#ai-insights"><i class="fas fa-brain me-2"></i>AI Insights</a>
+                    <a class="nav-link" href="#alerts"><i class="fas fa-bullhorn me-2"></i>Send Alerts</a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <div class="page-kicker">State command view</div>
+                    <h3 class="fw-bold">Karnataka State Overview</h3>
+                    <p class="text-muted mb-0">Animal Husbandry & Veterinary Services Department</p>
+                </div>
+                <button class="btn btn-danger" onclick="loadAIInsights()">
+                    <i class="fas fa-brain me-2"></i>Generate AI Insights
+                </button>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Farms</h6>
+                                <h4 class="fw-bold mb-0">{{ total_farms }}</h4>
+                            </div>
+                            <i class="fas fa-tractor fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card warning p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Active Cases</h6>
+                                <h4 class="fw-bold mb-0">{{ active_cases }}</h4>
+                            </div>
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Vaccinations</h6>
+                                <h4 class="fw-bold mb-0">{{ total_vaccinations }}</h4>
+                            </div>
+                            <i class="fas fa-syringe fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="text-muted mb-1">Veterinarians</h6>
+                                <h4 class="fw-bold mb-0">{{ total_vets }}</h4>
+                            </div>
+                            <i class="fas fa-user-md fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Zone Summary -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card risk-red p-3 text-center">
+                        <h3 class="fw-bold text-danger">{{ red_zones }}</h3>
+                        <p class="mb-0">Red Zones (High Risk)</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card risk-yellow p-3 text-center">
+                        <h3 class="fw-bold text-warning">{{ yellow_zones }}</h3>
+                        <p class="mb-0">Yellow Zones (Moderate Risk)</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card risk-green p-3 text-center">
+                        <h3 class="fw-bold text-success">{{ green_zones }}</h3>
+                        <p class="mb-0">Green Zones (Low Risk)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="card mb-4" id="map">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-map-marked-alt me-2"></i>Live Risk Zone Map</h5>
+                    <div id="map-legend">
+                        <span class="badge" style="background-color: #c62828;">Red: High</span>
+                        <span class="badge" style="background-color: #f9a825;">Yellow: Mod</span>
+                        <span class="badge" style="background-color: #2e7d32;">Green: Low</span>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="stateMap"></div>
+                    <div class="map-overlay-info">
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Radius indicates active cases.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- District Performance -->
+                <div class="col-lg-8 mb-4" id="districts">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2"></i>District Performance</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="districtChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biosecurity Status -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-shield-alt me-2"></i>Biosecurity Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="bioPieChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Insights -->
+            <div class="card mb-4" id="ai-insights">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-brain me-2"></i>AI-Powered Insights</h5>
+                </div>
+                <div class="card-body" id="aiInsightsContainer">
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-robot fa-3x mb-2"></i>
+                        <p>Click "Generate AI Insights" to get AI-powered recommendations based on current risk zones and incident patterns.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Districts Table -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-table me-2"></i>All Districts Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>District</th>
+                                    <th>Farms</th>
+                                    <th>Cases</th>
+                                    <th>Active</th>
+                                    <th>Vaccination %</th>
+                                    <th>Risk</th>
+                                    <th>Secure</th>
+                                    <th>Insecure</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in district_data %}
+                                <tr>
+                                    <td><strong>{{ d.name }}</strong><br><small class="text-muted">{{ d.name_kn }}</small></td>
+                                    <td>{{ d.farms }}</td>
+                                    <td>{{ d.cases }}</td>
+                                    <td>{{ d.active }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar bg-{{ 'success' if d.vaccination >= 80 else 'warning' if d.vaccination >= 60 else 'danger' }}" style="width: {{ d.vaccination }}%"></div>
+                                            </div>
+                                            <small>{{ d.vaccination }}%</small>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-{{ 'success' if d.risk == 'green' else 'warning' if d.risk == 'yellow' else 'danger' }}">{{ d.risk.upper() }}</span></td>
+                                    <td class="text-success">{{ d.secure }}</td>
+                                    <td class="text-danger">{{ d.insecure }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send State Alert -->
+            <div class="card mb-4" id="alerts">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-bullhorn me-2"></i>Send State-Wide Alert</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('state_send_alert') }}">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Alert Title</label>
+                                <input type="text" name="title" class="form-control" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Target District</label>
+                                <select name="district_id" class="form-select">
+                                    <option value="">All Districts</option>
+                                    {% for d in district_data %}
+                                    <option value="{{ d.id }}">{{ d.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Recipient</label>
+                                <select name="recipient_role" class="form-select">
+                                    <option value="all">All</option>
+                                    <option value="farmer">Farmers</option>
+                                    <option value="vet">Vets</option>
+                                    <option value="district_head">District Heads</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Type</label>
+                                <select name="message_type" class="form-select">
+                                    <option value="alert">Alert</option>
+                                    <option value="emergency">Emergency</option>
+                                    <option value="general">General</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-danger w-100"><i class="fas fa-paper-plane"></i> Send</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message Content</label>
+                            <textarea name="content" class="form-control" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Alerts -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-history me-2"></i>Recent State Alerts</h5>
+                </div>
+                <div class="card-body">
+                    {% for msg in messages %}
+                    <div class="alert alert-{{ 'danger' if msg.message_type == 'emergency' else 'warning' if msg.message_type == 'alert' else 'info' }} p-2 mb-2">
+                        <strong>{{ msg.title }}</strong> 
+                        <span class="badge bg-secondary">{{ msg.message_type.title() }}</span>
+                        {% if msg.district_id %}<span class="badge bg-primary">{{ district_data|selectattr('id', 'equalto', msg.district_id)|map(attribute='name')|first }}</span>{% endif %}
+                        <p class="mb-0 small">{{ msg.content }}</p>
+                        <small class="text-muted">{{ msg.created_at.strftime('%d %b %Y') }}</small>
+                    </div>
+                    {% else %}
+                        <p class="text-muted">No alerts sent yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load district data for map and charts
+    const districts = {{ district_data|tojson }};
+
+    // Initialize Map with a small delay to ensure container is rendered
+    setTimeout(() => {
+        const map = L.map('stateMap').setView([14.5, 76.0], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Force map to recalculate its size
+        map.invalidateSize();
+
+        // Add district markers
+        districts.forEach(d => {
+            if (!d.lat || !d.lng) return;
+            const color = d.risk === 'red' ? '#c62828' : d.risk === 'yellow' ? '#f9a825' : '#2e7d32';
+            const marker = L.circleMarker([d.lat, d.lng], {
+                radius: 12 + (d.active * 1.5), 
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+
+            marker.bindPopup(`
+                <div style="min-width: 150px;">
+                    <h6 class="fw-bold mb-1">${d.name}</h6>
+                    <div class="badge bg-${d.risk === 'red' ? 'danger' : d.risk === 'yellow' ? 'warning' : 'success'} mb-2">
+                        ${d.risk.toUpperCase()} RISK
+                    </div>
+                    <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                        <tr><td>Active Cases:</td><td class="text-end fw-bold">${d.active}</td></tr>
+                        <tr><td>Farms:</td><td class="text-end">${d.farms}</td></tr>
+                        <tr><td>Vaccination:</td><td class="text-end">${d.vaccination}%</td></tr>
+                    </table>
+                </div>
+            `);
+        });
+    }, 500);
+
+    // District Performance Chart
+    const perfCtx = document.getElementById('districtChart');
+    if (perfCtx) {
+        new Chart(perfCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: districts.map(d => d.name),
+                datasets: [
+                    {
+                        label: 'Total Cases',
+                        data: districts.map(d => d.cases),
+                        backgroundColor: 'rgba(198, 40, 40, 0.7)'
+                    },
+                    {
+                        label: 'Active Cases',
+                        data: districts.map(d => d.active),
+                        backgroundColor: 'rgba(249, 168, 37, 0.7)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // Biosecurity Pie Chart
+    const bioCtx = document.getElementById('bioPieChart');
+    if (bioCtx) {
+        const totalSecure = districts.reduce((sum, d) => sum + d.secure, 0);
+        const totalInsecure = districts.reduce((sum, d) => sum + d.insecure, 0);
+        new Chart(bioCtx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['Biosecure Farms', 'Non-Biosecure Farms'],
+                datasets: [{
+                    data: [totalSecure, totalInsecure],
+                    backgroundColor: ['#2e7d32', '#c62828']
+                }]
+            }
+        });
+    }
+});
+
+// AI Insights Loader (Keep outside DOMContentLoaded so button can call it)
+function loadAIInsights() {
+    const container = document.getElementById('aiInsightsContainer');
+    container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Analyzing state data...</p></div>';
+
+    fetch('/state/ai-insights')
+        .then(r => r.json())
+        .then(data => {
+            let html = '';
+            data.forEach(insight => {
+                html += `
+                    <div class="alert alert-info border-start border-4 border-primary p-3 mb-3">
+                        <h6 class="fw-bold"><i class="fas fa-lightbulb me-2 text-warning"></i>${insight.title}</h6>
+                        <p class="mb-0">${insight.content}</p>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            container.innerHTML = '<div class="alert alert-danger">Failed to load insights. Please try again.</div>';
+        });
+}
+</script>
+{% endblock %}

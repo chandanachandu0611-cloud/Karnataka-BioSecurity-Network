@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Karnataka Biosecurity Network{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1f7a6b;
+            --primary-dark: #0e4f47;
+            --secondary-color: #2f5d8c;
+            --danger-color: #b63d32;
+            --warning-color: #c98618;
+            --success-color: #2b7a50;
+            --ink: #202523;
+            --muted: #66736f;
+            --line: #d9e0dc;
+            --paper: #fffdf8;
+            --panel: #ffffff;
+            --bg-light: #f4f1e9;
+        }
+        body {
+            font-family: 'Noto Sans', 'Noto Sans Kannada', Arial, sans-serif;
+            background:
+                linear-gradient(90deg, rgba(14,79,71,0.04) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(14,79,71,0.035) 1px, transparent 1px),
+                var(--bg-light);
+            background-size: 42px 42px;
+            color: var(--ink);
+        }
+        .navbar {
+            background: rgba(255, 253, 248, 0.94);
+            border-bottom: 1px solid var(--line);
+            box-shadow: 0 10px 28px rgba(32,37,35,0.07);
+            backdrop-filter: blur(10px);
+        }
+        .navbar-brand { color: var(--primary-dark) !important; font-weight: 800; font-size: 1.05rem; letter-spacing: 0; }
+        .navbar .nav-link { color: #33413d; font-weight: 600; }
+        .navbar .nav-link:hover, .navbar .nav-link.active { color: var(--primary-dark); background: #e9f3ef; }
+        .navbar-toggler { border-color: var(--line); }
+        .card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 14px 32px rgba(32,37,35,0.08);
+            background: var(--panel);
+        }
+        .card-header { border-bottom: 1px solid var(--line); }
+        .stat-card { border-left: 5px solid var(--primary-color); }
+        .stat-card.danger { border-left-color: var(--danger-color); }
+        .stat-card.warning { border-left-color: var(--warning-color); }
+        .stat-card.success { border-left-color: var(--success-color); }
+        .btn { border-radius: 6px; font-weight: 700; }
+        .btn-primary, .btn-success { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-primary:hover, .btn-success:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); }
+        .btn-danger { background-color: var(--danger-color); border-color: var(--danger-color); }
+        .btn-warning { background-color: var(--warning-color); border-color: var(--warning-color); color: #221b10; }
+        .dashboard-sidebar {
+            min-height: calc(100vh - 58px);
+            background: #fbfaf5;
+            border-right: 1px solid var(--line);
+            position: sticky;
+            top: 58px;
+        }
+        .dashboard-sidebar h5 { color: var(--primary-dark) !important; }
+        .nav-link { color: #4d5854; padding: 11px 14px; border-radius: 6px; margin: 3px 8px; }
+        .dashboard-sidebar .nav-link:hover, .dashboard-sidebar .nav-link.active { background-color: #e7f0ec; color: var(--primary-dark); }
+        .alert-card { border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .risk-red { background-color: #fff3f0; border-left: 5px solid var(--danger-color); }
+        .risk-yellow { background-color: #fff8e8; border-left: 5px solid var(--warning-color); }
+        .risk-green { background-color: #edf7f1; border-left: 5px solid var(--success-color); }
+        .incident-pending { border-left: 5px solid #c98618; background: #fff9ec; }
+        .incident-assigned { border-left: 5px solid #2f7f91; background: #eef8fa; }
+        .incident-progress { border-left: 5px solid #c46a24; background: #fff3ea; }
+        .incident-resolved { border-left: 5px solid #2b7a50; background: #eef8f2; }
+        #stateMap { height: 500px; border-radius: 0 0 8px 8px; }
+        .kannada-text { font-family: 'Noto Sans Kannada', sans-serif; }
+        .hero-section {
+            color: #fff;
+            padding: 86px 0 64px;
+            background:
+                linear-gradient(120deg, rgba(10,45,42,0.93), rgba(31,122,107,0.84)),
+                url("https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1600&q=80") center/cover;
+        }
+        .hero-section h1 { max-width: 760px; margin-left: auto; margin-right: auto; }
+        .feature-icon { font-size: 2.15rem; color: var(--primary-color); margin-bottom: 12px; }
+        .language-select {
+            width: auto;
+            min-width: 132px;
+            border-color: var(--line);
+            background-color: #fffdf8;
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+        .chat-bubble { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; }
+        .emergency-btn { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(198, 40, 40, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(198, 40, 40, 0); } 100% { box-shadow: 0 0 0 0 rgba(198, 40, 40, 0); } }
+        .page-kicker { color: var(--primary-dark); font-weight: 800; text-transform: uppercase; font-size: .78rem; letter-spacing: .08em; }
+        .soft-section { background: rgba(255,253,248,0.72); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+        .table { --bs-table-bg: transparent; }
+        .table thead th { color: #53605c; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+        .form-control, .form-select { border-radius: 6px; border-color: #cfd9d4; }
+        .form-control:focus, .form-select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 .2rem rgba(31,122,107,.16); }
+        footer { background: #17221f !important; }
+        @media (max-width: 767.98px) {
+            .dashboard-sidebar { position: static; min-height: auto; }
+            .hero-section { padding: 58px 0 44px; }
+            .language-select { width: 100%; margin-top: 8px; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-shield-virus me-2"></i>
+                <span class="d-none d-md-inline">Karnataka Biosecurity Network</span>
+                <span class="d-md-none">KBN</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('about') }}">About</a></li>
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i>{{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% if current_user.role == 'farmer' %}{{ url_for('farmer_dashboard') }}{% elif current_user.role == 'vet' %}{{ url_for('vet_dashboard') }}{% elif current_user.role == 'district_head' %}{{ url_for('district_dashboard') }}{% else %}{{ url_for('state_dashboard') }}{% endif %}">Dashboard</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+                        <li class="nav-item"><a class="nav-link btn btn-light text-dark ms-2 px-3" href="{{ url_for('signup') }}">Sign Up</a></li>
+                    {% endif %}
+                    <li class="nav-item ms-lg-2">
+                        <select id="languageToggle" class="form-select form-select-sm language-select" aria-label="Language">
+                            <option value="en">English</option>
+                            <option value="kn">ಕನ್ನಡ</option>
+                        </select>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-shield-virus me-2"></i>Karnataka Biosecurity Network</h5>
+                    <p class="mb-0">Protecting livestock, securing livelihoods, building resilient communities across Karnataka.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Dept of Animal Husbandry & Veterinary Services, Karnataka</p>
+                    <small>Helpline: 1962 | Email: ahvs@karnataka.gov.in</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        const kbnTranslations = {
+            "Home": "ಮುಖಪುಟ",
+            "About": "ಬಗ್ಗೆ",
+            "Login": "ಲಾಗಿನ್",
+            "Sign Up": "ನೋಂದಣಿ",
+            "Dashboard": "ಡ್ಯಾಶ್ಬೋರ್ಡ್",
+            "Logout": "ಲಾಗ್ ಔಟ್",
+            "Karnataka Biosecurity Network": "ಕರ್ನಾಟಕ ಜೈವಿಕ ಸುರಕ್ಷತಾ ಜಾಲ",
+            "Protecting livestock, securing livelihoods, building resilient communities across Karnataka.": "ಜಾನುವಾರುಗಳನ್ನು ರಕ್ಷಿಸಿ, ಜೀವನೋಪಾಯವನ್ನು ಭದ್ರಪಡಿಸಿ, ಕರ್ನಾಟಕದಾದ್ಯಂತ ಬಲವಾದ ಸಮುದಾಯಗಳನ್ನು ನಿರ್ಮಿಸುವುದು.",
+            "Dept of Animal Husbandry & Veterinary Services, Karnataka": "ಪಶುಪಾಲನೆ ಮತ್ತು ಪಶುವೈದ್ಯಕೀಯ ಸೇವೆಗಳ ಇಲಾಖೆ, ಕರ್ನಾಟಕ",
+            "Helpline: 1962 | Email: ahvs@karnataka.gov.in": "ಸಹಾಯವಾಣಿ: 1962 | ಇಮೇಲ್: ahvs@karnataka.gov.in",
+            "Protecting Karnataka's Livestock": "ಕರ್ನಾಟಕದ ಜಾನುವಾರುಗಳ ರಕ್ಷಣೆ",
+            "Community-driven biosecurity network connecting farmers, veterinarians, and officials for rapid disease response": "ರೋಗಗಳಿಗೆ ತ್ವರಿತ ಪ್ರತಿಕ್ರಿಯೆಗಾಗಿ ರೈತರು, ಪಶುವೈದ್ಯರು ಮತ್ತು ಅಧಿಕಾರಿಗಳನ್ನು ಸಂಪರ್ಕಿಸುವ ಸಮುದಾಯ ಆಧಾರಿತ ಜೈವಿಕ ಸುರಕ್ಷತಾ ಜಾಲ",
+            "Join Network": "ಜಾಲಕ್ಕೆ ಸೇರಿ",
+            "Learn More": "ಹೆಚ್ಚು ತಿಳಿಯಿರಿ",
+            "Registered Farms": "ನೋಂದಾಯಿತ ಫಾರ್ಮ್‌ಗಳು",
+            "Active Cases": "ಸಕ್ರಿಯ ಪ್ರಕರಣಗಳು",
+            "Cases Resolved": "ಪರಿಹರಿಸಿದ ಪ್ರಕರಣಗಳು",
+            "Veterinarians": "ಪಶುವೈದ್ಯರು",
+            "How It Works": "ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ",
+            "Farmer Reports Issue": "ರೈತರು ಸಮಸ್ಯೆ ವರದಿ ಮಾಡುತ್ತಾರೆ",
+            "AI Temporary Solution": "AI ತಾತ್ಕಾಲಿಕ ಪರಿಹಾರ",
+            "Vet Responds Quickly": "ಪಶುವೈದ್ಯರು ಶೀಘ್ರ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತಾರೆ",
+            "District Monitoring": "ಜಿಲ್ಲಾ ಮೇಲ್ವಿಚಾರಣೆ",
+            "State Risk Mapping": "ರಾಜ್ಯ ಅಪಾಯ ನಕ್ಷೆ",
+            "Community Network": "ಸಮುದಾಯ ಜಾಲ",
+            "Current Alerts": "ಪ್ರಸ್ತುತ ಎಚ್ಚರಿಕೆಗಳು",
+            "Ready to Secure Your Farm?": "ನಿಮ್ಮ ಫಾರ್ಮ್ ಸುರಕ್ಷತೆಗೆ ಸಿದ್ಧವೇ?",
+            "Register Now": "ಈಗ ನೋಂದಣಿ ಮಾಡಿ",
+            "About Karnataka Biosecurity Network": "ಕರ್ನಾಟಕ ಜೈವಿಕ ಸುರಕ್ಷತಾ ಜಾಲದ ಬಗ್ಗೆ",
+            "Our Mission": "ನಮ್ಮ ಗುರಿ",
+            "The Problem": "ಸಮಸ್ಯೆ",
+            "Our Solution": "ನಮ್ಮ ಪರಿಹಾರ",
+            "Real Karnataka Data": "ನೈಜ ಕರ್ನಾಟಕ ಮಾಹಿತಿ",
+            "Create Account": "ಖಾತೆ ರಚಿಸಿ",
+            "Username": "ಬಳಕೆದಾರ ಹೆಸರು",
+            "Username *": "ಬಳಕೆದಾರ ಹೆಸರು *",
+            "Email *": "ಇಮೇಲ್ *",
+            "Password": "ಗುಪ್ತಪದ",
+            "Password *": "ಗುಪ್ತಪದ *",
+            "Phone Number": "ಫೋನ್ ಸಂಖ್ಯೆ",
+            "Role *": "ಪಾತ್ರ *",
+            "Language": "ಭಾಷೆ",
+            "Select Role": "ಪಾತ್ರ ಆಯ್ಕೆಮಾಡಿ",
+            "Farmer": "ರೈತ",
+            "Veterinarian": "ಪಶುವೈದ್ಯ",
+            "District Head": "ಜಿಲ್ಲಾ ಮುಖ್ಯಸ್ಥ",
+            "State Head": "ರಾಜ್ಯ ಮುಖ್ಯಸ್ಥ",
+            "Farm Details": "ಫಾರ್ಮ್ ವಿವರಗಳು",
+            "Farm Name": "ಫಾರ್ಮ್ ಹೆಸರು",
+            "District *": "ಜಿಲ್ಲೆ *",
+            "Village": "ಗ್ರಾಮ",
+            "Taluka": "ತಾಲೂಕು",
+            "Farm Size (acres)": "ಫಾರ್ಮ್ ಗಾತ್ರ (ಎಕರೆ)",
+            "Livestock Type": "ಜಾನುವಾರು ಪ್ರಕಾರ",
+            "Animal Count": "ಪ್ರಾಣಿಗಳ ಸಂಖ್ಯೆ",
+            "Latitude": "ಅಕ್ಷಾಂಶ",
+            "Longitude": "ರೇಖಾಂಶ",
+            "Veterinary Details": "ಪಶುವೈದ್ಯಕೀಯ ವಿವರಗಳು",
+            "Registration Number *": "ನೋಂದಣಿ ಸಂಖ್ಯೆ *",
+            "Qualification": "ಅರ್ಹತೆ",
+            "Specialization": "ವಿಶೇಷತೆ",
+            "District Details": "ಜಿಲ್ಲಾ ವಿವರಗಳು",
+            "Office Phone": "ಕಚೇರಿ ಫೋನ್",
+            "State Details": "ರಾಜ್ಯ ವಿವರಗಳು",
+            "Already have an account?": "ಈಗಾಗಲೇ ಖಾತೆಯಿದೆಯೇ?",
+            "Don't have an account?": "ಖಾತೆಯಿಲ್ಲವೇ?",
+            "Demo Accounts:": "ಪ್ರಾತ್ಯಕ್ಷಿಕೆ ಖಾತೆಗಳು:",
+            "Farmer Panel": "ರೈತ ಫಲಕ",
+            "Vet Panel": "ಪಶುವೈದ್ಯ ಫಲಕ",
+            "District Panel": "ಜಿಲ್ಲಾ ಫಲಕ",
+            "State Panel": "ರಾಜ್ಯ ಫಲಕ",
+            "Report Emergency": "ತುರ್ತು ವರದಿ",
+            "Biosecurity Tips": "ಜೈವಿಕ ಸುರಕ್ಷತಾ ಸಲಹೆಗಳು",
+            "Vaccination Records": "ಲಸಿಕೆ ದಾಖಲೆಗಳು",
+            "Messages": "ಸಂದೇಶಗಳು",
+            "Welcome,": "ಸ್ವಾಗತ,",
+            "My Incidents": "ನನ್ನ ಪ್ರಕರಣಗಳು",
+            "Pending": "ಬಾಕಿ",
+            "Resolved": "ಪರಿಹರಿಸಲಾಗಿದೆ",
+            "Animals": "ಪ್ರಾಣಿಗಳು",
+            "Recent Incidents": "ಇತ್ತೀಚಿನ ಪ್ರಕರಣಗಳು",
+            "Alerts & Messages": "ಎಚ್ಚರಿಕೆಗಳು ಮತ್ತು ಸಂದೇಶಗಳು",
+            "No new messages": "ಹೊಸ ಸಂದೇಶಗಳಿಲ್ಲ",
+            "Biosecurity Awareness": "ಜೈವಿಕ ಸುರಕ್ಷತಾ ಜಾಗೃತಿ",
+            "Vaccine": "ಲಸಿಕೆ",
+            "Animal Type": "ಪ್ರಾಣಿ ಪ್ರಕಾರ",
+            "Date Given": "ನೀಡಿದ ದಿನಾಂಕ",
+            "Next Due": "ಮುಂದಿನ ದಿನಾಂಕ",
+            "Status": "ಸ್ಥಿತಿ",
+            "Report Animal Health Emergency": "ಪ್ರಾಣಿಗಳ ಆರೋಗ್ಯ ತುರ್ತು ವರದಿ",
+            "Issue Title *": "ಸಮಸ್ಯೆಯ ಶೀರ್ಷಿಕೆ *",
+            "Affected Count *": "ಪ್ರಭಾವಿತ ಸಂಖ್ಯೆ *",
+            "Severity *": "ತೀವ್ರತೆ *",
+            "Low": "ಕಡಿಮೆ",
+            "Medium": "ಮಧ್ಯಮ",
+            "High": "ಹೆಚ್ಚು",
+            "Critical": "ಗಂಭೀರ",
+            "Symptoms Observed *": "ಕಂಡುಬಂದ ಲಕ್ಷಣಗಳು *",
+            "Description *": "ವಿವರಣೆ *",
+            "Upload Images": "ಚಿತ್ರಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ",
+            "AI Assistance:": "AI ಸಹಾಯ:",
+            "Submit Emergency Report": "ತುರ್ತು ವರದಿ ಸಲ್ಲಿಸಿ",
+            "Pending Cases": "ಬಾಕಿ ಪ್ರಕರಣಗಳು",
+            "My Cases": "ನನ್ನ ಪ್ರಕರಣಗಳು",
+            "Schedule": "ವೇಳಾಪಟ್ಟಿ",
+            "Farmers": "ರೈತರು",
+            "Verified": "ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+            "Verification Pending": "ಪರಿಶೀಲನೆ ಬಾಕಿ",
+            "Pending in District": "ಜಿಲ್ಲೆಯಲ್ಲಿ ಬಾಕಿ",
+            "My Active Cases": "ನನ್ನ ಸಕ್ರಿಯ ಪ್ರಕರಣಗಳು",
+            "Upcoming Visits": "ಮುಂಬರುವ ಭೇಟಿಗಳು",
+            "Accept": "ಸ್ವೀಕರಿಸಿ",
+            "View": "ವೀಕ್ಷಿಸಿ",
+            "Schedule Visit": "ಭೇಟಿ ನಿಗದಿ",
+            "Visit Date & Time": "ಭೇಟಿ ದಿನಾಂಕ ಮತ್ತು ಸಮಯ",
+            "Notes": "ಟಿಪ್ಪಣಿಗಳು",
+            "Close": "ಮುಚ್ಚಿ",
+            "Send": "ಕಳುಹಿಸಿ",
+            "Incidents": "ಪ್ರಕರಣಗಳು",
+            "Vaccination": "ಲಸಿಕೆ",
+            "Send Alerts": "ಎಚ್ಚರಿಕೆ ಕಳುಹಿಸಿ",
+            "Total Farms": "ಒಟ್ಟು ಫಾರ್ಮ್‌ಗಳು",
+            "Vaccination by Type": "ಪ್ರಕಾರದಂತೆ ಲಸಿಕೆ",
+            "Overall Coverage": "ಒಟ್ಟು ವ್ಯಾಪ್ತಿ",
+            "Send Alert to District": "ಜಿಲ್ಲೆಗೆ ಎಚ್ಚರಿಕೆ ಕಳುಹಿಸಿ",
+            "Alert Title": "ಎಚ್ಚರಿಕೆ ಶೀರ್ಷಿಕೆ",
+            "Recipient": "ಸ್ವೀಕರಿಸುವವರು",
+            "Type": "ಪ್ರಕಾರ",
+            "Message Content": "ಸಂದೇಶ ವಿಷಯ",
+            "Recent Alerts Sent": "ಇತ್ತೀಚೆಗೆ ಕಳುಹಿಸಿದ ಎಚ್ಚರಿಕೆಗಳು",
+            "Risk Map": "ಅಪಾಯ ನಕ್ಷೆ",
+            "Districts": "ಜಿಲ್ಲೆಗಳು",
+            "AI Insights": "AI ಒಳನೋಟಗಳು",
+            "Karnataka State Overview": "ಕರ್ನಾಟಕ ರಾಜ್ಯ ಅವಲೋಕನ",
+            "Animal Husbandry & Veterinary Services Department": "ಪಶುಪಾಲನೆ ಮತ್ತು ಪಶುವೈದ್ಯಕೀಯ ಸೇವೆಗಳ ಇಲಾಖೆ",
+            "Generate AI Insights": "AI ಒಳನೋಟಗಳನ್ನು ರಚಿಸಿ",
+            "Vaccinations": "ಲಸಿಕೆಗಳು",
+            "Red Zones (High Risk)": "ಕೆಂಪು ವಲಯಗಳು (ಹೆಚ್ಚು ಅಪಾಯ)",
+            "Yellow Zones (Moderate Risk)": "ಹಳದಿ ವಲಯಗಳು (ಮಧ್ಯಮ ಅಪಾಯ)",
+            "Green Zones (Low Risk)": "ಹಸಿರು ವಲಯಗಳು (ಕಡಿಮೆ ಅಪಾಯ)",
+            "Risk Zone Map": "ಅಪಾಯ ವಲಯ ನಕ್ಷೆ",
+            "District Performance": "ಜಿಲ್ಲಾ ಕಾರ್ಯಕ್ಷಮತೆ",
+            "Biosecurity Status": "ಜೈವಿಕ ಸುರಕ್ಷತಾ ಸ್ಥಿತಿ",
+            "AI-Powered Insights": "AI ಆಧಾರಿತ ಒಳನೋಟಗಳು",
+            "All Districts Summary": "ಎಲ್ಲಾ ಜಿಲ್ಲೆಗಳ ಸಾರಾಂಶ",
+            "Send State-Wide Alert": "ರಾಜ್ಯವ್ಯಾಪಿ ಎಚ್ಚರಿಕೆ ಕಳುಹಿಸಿ",
+            "Recent State Alerts": "ಇತ್ತೀಚಿನ ರಾಜ್ಯ ಎಚ್ಚರಿಕೆಗಳು",
+            "Incident": "ಪ್ರಕರಣ",
+            "Case Timeline": "ಪ್ರಕರಣ ಕಾಲರೇಖೆ",
+            "Reported": "ವರದಿಯಾಗಿದೆ",
+            "Veterinarian Assigned": "ಪಶುವೈದ್ಯರನ್ನು ನಿಯೋಜಿಸಲಾಗಿದೆ",
+            "Actions": "ಕ್ರಿಯೆಗಳು",
+            "Veterinarian Notes": "ಪಶುವೈದ್ಯರ ಟಿಪ್ಪಣಿಗಳು",
+            "Mark as Resolved": "ಪರಿಹರಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿ",
+            "Disclaimer:": "ಹಕ್ಕುತ್ಯಾಗ:",
+            "Images:": "ಚಿತ್ರಗಳು:",
+            "Symptoms:": "ಲಕ್ಷಣಗಳು:",
+            "Description:": "ವಿವರಣೆ:"
+            ,
+            "Field response network": "ಕ್ಷೇತ್ರ ಪ್ರತಿಕ್ರಿಯಾ ಜಾಲ",
+            "Workflow": "ಕಾರ್ಯವಿಧಾನ",
+            "About the network": "ಜಾಲದ ಬಗ್ಗೆ",
+            "Secure access": "ಸುರಕ್ಷಿತ ಪ್ರವೇಶ",
+            "Join the field network": "ಕ್ಷೇತ್ರ ಜಾಲಕ್ಕೆ ಸೇರಿ",
+            "Farm workspace": "ಫಾರ್ಮ್ ಕಾರ್ಯಸ್ಥಳ",
+            "Veterinary response desk": "ಪಶುವೈದ್ಯ ಪ್ರತಿಕ್ರಿಯಾ ಮೇಜು",
+            "District command view": "ಜಿಲ್ಲಾ ನಿಯಂತ್ರಣ ನೋಟ",
+            "State command view": "ರಾಜ್ಯ ನಿಯಂತ್ರಣ ನೋಟ",
+            "Case record": "ಪ್ರಕರಣ ದಾಖಲೆ",
+            "English": "ಇಂಗ್ಲಿಷ್",
+            "Kannada": "ಕನ್ನಡ",
+            "Poultry": "ಕೋಳಿ",
+            "Pig": "ಹಂದಿ",
+            "Cattle": "ದನ",
+            "Goat": "ಮೇಕೆ",
+            "Mixed": "ಮಿಶ್ರ",
+            "Swine": "ಹಂದಿ",
+            "Mixed Practice": "ಮಿಶ್ರ ಅಭ್ಯಾಸ",
+            "State": "ರಾಜ್ಯ",
+            "District": "ಜಿಲ್ಲೆ",
+            "Farmer: farmer_bengaluru_urban_1 / farmer123": "ರೈತ: farmer_bengaluru_urban_1 / farmer123",
+            "Vet: vet_bengaluru_urban_1 / vet123": "ಪಶುವೈದ್ಯ: vet_bengaluru_urban_1 / vet123",
+            "District: district_bengaluru_urban / district123": "ಜಿಲ್ಲೆ: district_bengaluru_urban / district123",
+            "State: karnataka_state / state123": "ರಾಜ್ಯ: karnataka_state / state123"
+        };
+
+        const originalTextNodes = new WeakMap();
+
+        function translateNode(node, lang) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const original = originalTextNodes.get(node) || node.textContent;
+                originalTextNodes.set(node, original);
+                const trimmed = original.trim();
+                if (lang === 'kn' && kbnTranslations[trimmed]) {
+                    node.textContent = original.replace(trimmed, kbnTranslations[trimmed]);
+                } else {
+                    node.textContent = original;
+                }
+                return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            if (['SCRIPT', 'STYLE', 'TEXTAREA', 'TITLE'].includes(node.tagName)) return;
+            ['placeholder', 'aria-label', 'title'].forEach(attr => {
+                if (!node.hasAttribute(attr)) return;
+                const dataKey = `en${attr.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase())}`;
+                const original = node.dataset[dataKey] || node.getAttribute(attr);
+                node.dataset[dataKey] = original;
+                node.setAttribute(attr, lang === 'kn' && kbnTranslations[original] ? kbnTranslations[original] : original);
+            });
+            [...node.childNodes].forEach(child => translateNode(child, lang));
+        }
+
+        function applyLanguage(lang) {
+            document.documentElement.lang = lang === 'kn' ? 'kn' : 'en';
+            document.body.classList.toggle('kannada-text', lang === 'kn');
+            translateNode(document.body, lang);
+            localStorage.setItem('kbnLanguage', lang);
+            const toggle = document.getElementById('languageToggle');
+            if (toggle) toggle.value = lang;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('kbnLanguage') || 'en';
+            const toggle = document.getElementById('languageToggle');
+            if (toggle) toggle.addEventListener('change', event => applyLanguage(event.target.value));
+            applyLanguage(saved);
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

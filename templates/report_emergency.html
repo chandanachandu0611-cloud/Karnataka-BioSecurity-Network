@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <h2 class="mb-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Report Emergency</h2>
+
+                    <form id="emergencyForm" method="POST" enctype="multipart/form-data">
+
+                        <!-- Issue Title (Optional) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Issue Title</label>
+                            <input type="text" name="title" class="form-control" placeholder="e.g., Sudden mortality in poultry flock">
+                        </div>
+
+                        <!-- Animal Type & Affected Count (Optional) -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Animal Type</label>
+                                <select name="animal_type" class="form-select">
+                                    <option value="poultry">Poultry</option>
+                                    <option value="pig">Pig</option>
+                                    <option value="cattle">Cattle</option>
+                                    <option value="goat">Goat</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Affected Count</label>
+                                <input type="number" name="affected_count" class="form-control" value="1">
+                            </div>
+                        </div>
+
+                        <!-- Severity (Mandatory *) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Severity <span class="text-danger">*</span></label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="severity" id="low" value="low">
+                                <label class="btn btn-outline-success" for="low">Low</label>
+
+                                <input type="radio" class="btn-check" name="severity" id="medium" value="medium">
+                                <label class="btn btn-outline-warning" for="medium">Medium</label>
+
+                                <input type="radio" class="btn-check" name="severity" id="high" value="high">
+                                <label class="btn btn-outline-danger" for="high">High</label>
+                            </div>
+                            <small id="severityError" class="text-danger mt-1" style="display:none;">Please select a severity level.</small>
+                        </div>
+
+                        <!-- Symptoms Observed (Optional) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Symptoms Observed</label>
+                            <textarea name="symptoms" class="form-control" rows="2" placeholder="e.g., Fever, coughing, nasal discharge"></textarea>
+                        </div>
+
+                        <!-- Description (Optional) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <textarea name="description" class="form-control" rows="4" placeholder="Describe when it started, recent changes, etc."></textarea>
+                        </div>
+
+                        <!-- Upload Images (Mandatory *) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Upload Images <span class="text-danger">*</span></label>
+                            <input type="file" id="imageInput" name="images" class="form-control" accept="image/*" multiple capture="environment">
+                            <small class="text-muted">Please upload photos of affected animals or symptoms.</small>
+                        </div>
+
+                        <!-- Voice Recording Section (Mandatory *) -->
+                        <div class="card p-3 my-3 border-danger shadow-sm bg-light">
+                            <label class="form-label fw-bold">
+                                <strong>Record Voice Report (Kannada / English) <span class="text-danger">*</span></strong>
+                            </label>
+                            <p class="text-muted small mb-2">Click record, describe symptoms, and click stop when done.</p>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" id="recordBtn" class="btn btn-outline-danger">
+                                    🎤 Start Recording
+                                </button>
+                                <span id="recordingStatus" class="badge bg-secondary ms-2" style="display:none;">Recording...</span>
+                            </div>
+
+                            <audio id="audioPreview" controls class="w-100 mt-3" style="display:none;"></audio>
+                            <input type="file" name="voice_file" id="voiceFileInput" style="display:none;">
+                        </div>
+
+                        <!-- AI Assistance Note -->
+                        <div class="alert alert-info my-3">
+                            <i class="fas fa-robot me-2"></i>
+                            <strong>AI Assistance:</strong> After submission, the app will analyze your report and provide immediate measures while awaiting veterinarian response.
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-danger w-100 btn-lg">
+                            <i class="fas fa-paper-plane me-2"></i>Submit Emergency Report
+                        </button>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Mandatory Verification and Audio Recording -->
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+const recordBtn = document.getElementById('recordBtn');
+const audioPreview = document.getElementById('audioPreview');
+const voiceFileInput = document.getElementById('voiceFileInput');
+const recordingStatus = document.getElementById('recordingStatus');
+const emergencyForm = document.getElementById('emergencyForm');
+const imageInput = document.getElementById('imageInput');
+const severityError = document.getElementById('severityError');
+
+// Audio Recording Logic
+recordBtn.onclick = async () => {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                audioPreview.src = audioUrl;
+                audioPreview.style.display = 'block';
+
+                const file = new File([audioBlob], "farmer_voice.wav", { type: "audio/wav" });
+                const container = new DataTransfer();
+                container.items.add(file);
+                voiceFileInput.files = container.files;
+            };
+
+            mediaRecorder.start();
+            recordBtn.innerText = '⏹ Stop Recording';
+            recordBtn.className = 'btn btn-danger';
+            recordingStatus.style.display = 'inline-block';
+        } catch (err) {
+            alert('Microphone access denied or not supported by browser.');
+        }
+    } else {
+        mediaRecorder.stop();
+        recordBtn.innerText = '🎤 Record Again';
+        recordBtn.className = 'btn btn-outline-danger';
+        recordingStatus.style.display = 'none';
+    }
+};
+
+// Validation Check on Submit
+emergencyForm.onsubmit = (e) => {
+    const hasImage = imageInput.files && imageInput.files.length > 0;
+    const hasVoice = voiceFileInput.files && voiceFileInput.files.length > 0;
+    const hasSeverity = document.querySelector('input[name="severity"]:checked') !== null;
+
+    if (!hasSeverity) {
+        severityError.style.display = 'block';
+    } else {
+        severityError.style.display = 'none';
+    }
+
+    if (!hasSeverity || !hasImage || !hasVoice) {
+        let missingFields = [];
+        if (!hasSeverity) missingFields.push('Severity Level');
+        if (!hasImage) missingFields.push('At least one Image');
+        if (!hasVoice) missingFields.push('Voice Recording');
+
+        alert('⚠️ Please complete the following required fields before submitting:\n\n• ' + missingFields.join('\n• '));
+        e.preventDefault();
+        return false;
+    }
+};
+</script>
+{% endblock %}
