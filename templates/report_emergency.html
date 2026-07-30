@@ -1,113 +1,71 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report Emergency - AI Biosecurity</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-light">
+<script>
+async function analyzeImageWithGemma(input) {
+    if (input.files && input.files[0]) {
+        const formData = new FormData();
+        formData.append('image', input.files[0]);
 
-<div class="container py-4" style="max-width: 700px;">
-    <div class="card shadow-sm">
-        <div class="card-header bg-danger text-white">
-            <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Report Emergency</h4>
-        </div>
-        <div class="card-body">
-            
-            <form method="POST" action="{{ url_for('report_emergency') }}" enctype="multipart/form-data" id="emergencyForm">
-                
-                <!-- 1. UPLOAD IMAGES (At the top & MANDATORY) -->
-                <div class="card p-3 mb-4 border-primary bg-light">
-                    <label class="form-label fw-bold text-primary fs-5">
-                        Upload Images <span class="text-danger">*</span>
-                    </label>
-                    <input type="file" name="image" id="imageInput" class="form-control form-control-lg" accept="image/*" required>
-                    <small class="text-muted mt-2 d-block">
-                        <i class="fas fa-image me-1 text-primary"></i> Upload a clear photo of the affected animal or symptoms.
-                    </small>
-                </div>
+        const statusEl = document.getElementById('aistatus');
+        const titleInput = document.getElementById('issue_title');
+        const symptomsInput = document.getElementById('symptoms');
+        const descInput = document.getElementById('description');
+        const animalSelect = document.getElementById('animal_type');
 
-                <!-- 2. ISSUE TITLE -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Issue Title</label>
-                    <input type="text" name="title" id="issue_title" class="form-control" placeholder="e.g., Sudden mortality or skin lesions in livestock">
-                </div>
+        // Show loading state
+        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> 🤖 Gemma AI Analyzing Image... Please wait.';
 
-                <!-- 3. ANIMAL TYPE & AFFECTED COUNT -->
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Animal Type</label>
-                        <select name="animal_type" id="animal_type" class="form-select">
-                            <option value="Cattle">Cattle</option>
-                            <option value="Poultry">Poultry</option>
-                            <option value="Goat/Sheep">Goat/Sheep</option>
-                            <option value="Pig">Pig</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Affected Count</label>
-                        <input type="number" name="affected_count" class="form-control" value="1" min="1">
-                    </div>
-                </div>
+        try {
+            const response = await fetch('/api/analyze_image', {
+                method: 'POST',
+                body: formData
+            });
 
-                <!-- 4. SEVERITY (Optional) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Severity</label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="severity" id="sev_low" value="Low">
-                        <label class="btn btn-outline-success" for="sev_low">Low</label>
+            const data = await response.json();
+            console.log("Gemma Response Data:", data); // Debug Log
 
-                        <input type="radio" class="btn-check" name="severity" id="sev_med" value="Medium" checked>
-                        <label class="btn btn-outline-warning text-dark" for="sev_med">Medium</label>
+            if (data.success) {
+                // Populate text fields
+                if (data.title) titleInput.value = data.title;
+                if (data.symptoms) symptomsInput.value = data.symptoms;
+                if (data.description) descInput.value = data.description;
 
-                        <input type="radio" class="btn-check" name="severity" id="sev_high" value="High">
-                        <label class="btn btn-outline-danger" for="sev_high">High</label>
-                    </div>
-                </div>
+                // Smart Animal Dropdown Selection
+                if (data.animal_type) {
+                    const aiAnimal = String(data.animal_type).toLowerCase();
+                    console.log("Detected AI Animal:", aiAnimal);
 
-                <!-- 5. SYMPTOMS OBSERVED -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Symptoms Observed</label>
-                    <textarea name="symptoms" id="symptoms" class="form-control" rows="2" placeholder="e.g., Fever, coughing, skin nodules, nasal discharge"></textarea>
-                </div>
+                    if (aiAnimal.includes('cow') || aiAnimal.includes('cattle') || aiAnimal.includes('bovine')) {
+                        animalSelect.value = 'Cattle';
+                    } else if (aiAnimal.includes('poultry') || aiAnimal.includes('chicken') || aiAnimal.includes('bird')) {
+                        animalSelect.value = 'Poultry';
+                    } else if (aiAnimal.includes('goat') || aiAnimal.includes('sheep')) {
+                        animalSelect.value = 'Goat/Sheep';
+                    } else if (aiAnimal.includes('pig') || aiAnimal.includes('swine')) {
+                        animalSelect.value = 'Pig';
+                    } else {
+                        animalSelect.value = data.animal_type;
+                    }
+                }
 
-                <!-- 6. DESCRIPTION -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Description</label>
-                    <textarea name="description" id="description" class="form-control" rows="3" placeholder="Describe when it started, recent changes, etc."></textarea>
-                </div>
+                // Set Severity Radio Button
+                if (data.severity) {
+                    const sev = String(data.severity).toLowerCase();
+                    if (sev.includes('low')) {
+                        document.getElementById('sev_low').checked = true;
+                    } else if (sev.includes('high')) {
+                        document.getElementById('sev_high').checked = true;
+                    } else {
+                        document.getElementById('sev_med').checked = true;
+                    }
+                }
 
-                <!-- 7. RECORD VOICE REPORT (Optional) -->
-                <div class="card p-3 mb-4 bg-light border">
-                    <label class="form-label fw-bold mb-1">Record Voice Report (Kannada / English)</label>
-                    <small class="text-muted d-block mb-2">Click record, describe symptoms, and click stop when done.</small>
-                    <div>
-                        <button type="button" id="recordBtn" class="btn btn-outline-danger btn-sm">
-                            <i class="fas fa-microphone me-1"></i> Start Recording
-                        </button>
-                        <input type="file" name="voice_note" id="voice_input" accept="audio/*" class="d-none">
-                    </div>
-                </div>
-
-                <!-- AI ASSISTANCE BANNER -->
-                <div class="alert alert-info d-flex align-items-center mb-4">
-                    <i class="fas fa-robot fa-2x me-3 text-info"></i>
-                    <div>
-                        <strong>Gemma AI Pipeline:</strong> Once submitted, the image and report will be processed by Gemma RAG on the backend to provide immediate biosecurity recommendations.
-                    </div>
-                </div>
-
-                <!-- SUBMIT BUTTON -->
-                <button type="submit" class="btn btn-danger w-100 py-3 fw-bold fs-5">
-                    <i class="fas fa-paper-plane me-2"></i> Submit Emergency Report
-                </button>
-            </form>
-
-        </div>
-    </div>
-</div>
-
-</body>
-</html>
+                statusEl.innerHTML = '<i class="fas fa-check-circle text-success"></i> Auto-filled by Gemma AI!';
+            } else {
+                statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> Failed to analyze image.';
+            }
+        } catch (error) {
+            console.error("Error connecting to Gemma API:", error);
+            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> Error analyzing image.';
+        }
+    }
+}
+</script>

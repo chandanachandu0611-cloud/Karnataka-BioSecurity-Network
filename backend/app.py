@@ -635,7 +635,35 @@ def vet_dashboard():
                            pending_incidents=pending_incidents,
                            incidents=pending_incidents,
                            my_cases=my_cases)
-    
+
+# ----------------------------------------------------
+# Route to connect Frontend Image Upload to Kaggle API
+# ----------------------------------------------------
+import requests
+
+KAGGLE_API_URL = "https://nativity-such-sheet.ngrok-free.dev/predict"
+
+@app.route('/api/analyze_image', methods=['POST'])
+def analyze_image():
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'error': 'No image provided'}), 400
+
+    image_file = request.files['image']
+
+    try:
+        # Forward uploaded image to Kaggle ngrok server
+        files = {'image': (image_file.filename, image_file.read(), image_file.mimetype)}
+        headers = {'ngrok-skip-browser-warning': 'true'}
+        response = requests.post(KAGGLE_API_URL, files=files, headers=headers, timeout=30)
+
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'success': False, 'error': f'Kaggle returned status {response.status_code}'}), 500
+
+    except Exception as e:
+        print("API Error:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 if __name__ == '__main__':
